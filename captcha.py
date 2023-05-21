@@ -19,12 +19,19 @@ class CapMonster:
         }, headers={
             'content-type': 'application/json'
         })
-
-        task_id = res.json()['taskId']
-
+        res_json = res.json()
+        
+        task_id = res_json['taskId']
+        
+        if res_json['errorId'] > 0:
+            print('[*] Thread ' + str(self.thread) + ': Не удалось отправить капчу на решение - ' + res_json['errorCode'])
+            return 
+        
         while True:
             print('[*] Thread ' + str(self.thread) + ': Жду решение капчи - 10 секунд')
+            
             time.sleep(10)
+            
             res = requests.post('https://api.capmonster.cloud/getTaskResult', json={
                 'clientKey': self.api_key,
                 'taskId': task_id
@@ -33,11 +40,16 @@ class CapMonster:
             })
 
             answer = res.json()
-
+            
+            if answer['errorId'] > 0:
+                print('[*] Thread ' + str(self.thread) + ': Не удалось решить капчу - ' + answer['errorCode'])
+                return 
+                
             if answer['status'] == 'processing':
                 print('[*] Thread ' + str(self.thread) + ': Жду решение капчи - 10 секунд')
                 time.sleep(10)
-            else:
+                
+            if answer['status'] == 'ready':
                 return answer['solution']['gRecaptchaResponse']
         
             
